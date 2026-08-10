@@ -5,7 +5,7 @@ compatibility_date = "2026-08-10"
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/api/*"][[d1_databases]]
+run_worker_first = ["/api/*"]
 binding = "DB"
 database_name = "jab-innovations-db"
 database_id = "a2c0f5d3-d6ce-4bcc-aa2e-1c12de80a8dd"
