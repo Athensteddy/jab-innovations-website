@@ -8,7 +8,6 @@ binding = "ASSETS"
 
 
 run_worker_first = ["/api/*"]
-
 [[d1_databases]]
 binding = "DB"
 database_name = "jab-innovations-db"
