@@ -14,4 +14,4 @@ After this Worker is deployed, add the dashboard binding:
   Variable name: DB
   D1 database: jab-innovations-db
 
-That avoids creating a second database and lets the existing database/table be reused.
+That avoids creating a second database and lets the existing database/table be reused. Deployment trigger
