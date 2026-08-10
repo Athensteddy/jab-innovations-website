@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Research Compounds',
+  description TEXT NOT NULL DEFAULT '',
+  cost REAL NOT NULL DEFAULT 0,
+  price REAL NOT NULL DEFAULT 0,
+  quantity INTEGER NOT NULL DEFAULT 0,
+  low_stock INTEGER NOT NULL DEFAULT 5,
+  active INTEGER NOT NULL DEFAULT 1,
+  image_url TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
