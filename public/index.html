@@ -1,3 +1,330 @@
+from pathlib import Path
+
+html = r'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JAB Innovations</title>
+<style>
+:root{
+  --bg:#07070b;--panel:#12121a;--panel2:#181821;--line:#2d2d38;
+  --text:#f7f7fb;--muted:#aaa9b5;--purple:#8b2cf5;--purple2:#a94cff;
+  --green:#4ade80;--red:#fb7185;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:
+radial-gradient(circle at top right,rgba(139,44,245,.18),transparent 34%),var(--bg);color:var(--text)}
+header{background:#09090e;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.nav{max-width:1180px;margin:auto;padding:20px 22px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:27px;font-weight:900}.brand span{color:var(--purple2)}
+.links{display:flex;gap:24px}.links a{color:#c1c0ca;text-decoration:none;font-weight:800}.links a:hover{color:white}
+.wrap{max-width:1180px;margin:auto;padding:0 22px 80px}
+.hero{padding:78px 0 58px}.eyebrow{color:var(--purple2);font-weight:900;letter-spacing:3px;font-size:13px}
+.hero h1{font-size:clamp(48px,8vw,86px);line-height:.94;letter-spacing:-4px;margin:14px 0 18px;max-width:830px}
+.hero p{color:var(--muted);max-width:700px;font-size:19px;line-height:1.6}
+.btn{display:inline-block;border:0;border-radius:12px;padding:14px 22px;font-weight:900;cursor:pointer;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--purple2));color:white}
+.btn-secondary{background:var(--panel);color:white;border:1px solid var(--line)}
+.catalog-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:20px}
+.catalog-head h2{font-size:38px;margin:0}.catalog-head p{margin:8px 0 0;color:var(--muted)}
+.search{width:290px;max-width:100%;padding:13px 15px;border-radius:11px;border:1px solid var(--line);background:var(--panel);color:white}
+.filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:30px}
+.filter{background:var(--panel);color:#bbb9c7;border:1px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer;font-weight:700}
+.filter.active{background:var(--purple);color:white;border-color:var(--purple)}
+.category{margin:36px 0}.category h3{font-size:24px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{background:linear-gradient(145deg,#171720,#111118);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.card h4{margin:0;font-size:19px}.desc{color:var(--muted);font-size:13px;min-height:18px}
+.price-row{display:flex;justify-content:space-between;align-items:end;gap:10px}.price{font-size:22px;font-weight:900}
+.stock{font-size:12px;font-weight:900}.in{color:var(--green)}.out{color:var(--red)}
+.select-row{display:flex;gap:8px}.qty{width:72px;padding:10px;border-radius:9px;border:1px solid var(--line);background:#0c0c12;color:white}
+.select-btn{flex:1;background:#2a1744;border:1px solid #5b2e94;color:white;border-radius:9px;font-weight:800;cursor:pointer}
+.select-btn:disabled{opacity:.4;cursor:not-allowed}
+.request{margin-top:65px;background:linear-gradient(145deg,rgba(139,44,245,.15),rgba(18,18,26,.98));border:1px solid #513079;border-radius:20px;padding:26px}
+.request h2{margin:0 0 8px;font-size:30px}.request .sub{color:var(--muted);margin-bottom:22px}
+.request-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:24px}
+.request-list{background:#0d0d13;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.request-item{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:13px 14px;border-bottom:1px solid var(--line)}
+.request-item:last-child{border-bottom:0}.request-item small{color:var(--muted)}.remove{background:none;border:0;color:var(--red);cursor:pointer;font-weight:900}
+.total{display:flex;justify-content:space-between;padding:16px 14px;font-size:20px;font-weight:900;border-top:1px solid var(--line)}
+.form{display:grid;gap:12px}.field{display:grid;gap:6px}.field label{font-size:13px;color:var(--muted);font-weight:800}
+.field input,.field textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d0d13;color:white}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.empty{padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--muted)}
+.disclaimer{margin-top:60px;border:1px solid #513079;background:rgba(139,44,245,.10);padding:25px;border-radius:18px}
+.disclaimer h3{margin-top:0}.disclaimer p{color:var(--muted);line-height:1.6}
+footer{border-top:1px solid var(--line);padding:28px 22px 42px;max-width:1180px;margin:auto;display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+.staff{color:var(--muted);opacity:.45;text-decoration:none}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.request-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.catalog-head{flex-direction:column;align-items:stretch}.search{width:100%}.links{gap:14px;font-size:14px}.hero{padding-top:52px}.request-item{grid-template-columns:1fr auto}.request-item .line-total{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <div class="brand">JAB <span>Innovations</span></div>
+    <nav class="links">
+      <a href="/">Home</a>
+      <a href="/coa.html">COA</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<section class="hero">
+  <div class="eyebrow">JAB INNOVATIONS</div>
+  <h1>Quality.<br>Clarity.<br>Innovation.</h1>
+  <p>Browse current research inventory, choose the products you are interested in, and send one simple request to JAB Innovations.</p>
+  <a class="btn btn-primary" href="#catalog">Browse Products</a>
+</section>
+
+<section id="catalog">
+  <div class="catalog-head">
+    <div>
+      <h2>Catalog</h2>
+      <p>Live pricing and availability.</p>
+    </div>
+    <input id="search" class="search" type="search" placeholder="Search products...">
+  </div>
+
+  <div id="filters" class="filters"></div>
+  <div id="products"><div class="empty">Loading inventory...</div></div>
+</section>
+
+<section id="request" class="request">
+  <h2>Request List</h2>
+  <div class="sub">Select products above, review the quantities, then send your request.</div>
+
+  <div class="request-grid">
+    <div>
+      <div id="requestList" class="request-list">
+        <div class="empty">No products selected yet.</div>
+      </div>
+    </div>
+
+    <form id="requestForm" class="form">
+      <div class="field">
+        <label for="customerName">Name</label>
+        <input id="customerName" required>
+      </div>
+      <div class="field">
+        <label for="customerPhone">Phone</label>
+        <input id="customerPhone" type="tel" required>
+      </div>
+      <div class="field">
+        <label for="customerEmail">Email</label>
+        <input id="customerEmail" type="email" required>
+      </div>
+      <div class="field">
+        <label for="customerNotes">Notes (optional)</label>
+        <textarea id="customerNotes" rows="4"></textarea>
+      </div>
+
+      <button class="btn btn-primary" type="submit">Send Request by Email</button>
+
+      <div class="note">
+        This sends a request to sales@jab-innovations154.com. It does not automatically reduce inventory or complete a purchase.
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="disclaimer">
+  <h3>Research Use Only</h3>
+  <p>Products listed by JAB Innovations are intended solely for laboratory, analytical and research purposes. Not for human consumption or medical use.</p>
+</section>
+</main>
+
+<footer>
+  <div>© 2026 JAB Innovations</div>
+  <a class="staff" href="/admin.html">Staff</a>
+</footer>
+
+<script>
+let PRODUCTS=[];
+let currentCategory="All";
+const CART=new Map();
+const SALES_EMAIL="sales@jab-innovations154.com";
+
+const money=v=>"$"+Number(v||0).toFixed(2);
+
+function renderFilters(){
+  const cats=["All",...new Set(PRODUCTS.filter(x=>+x.active===1).map(x=>x.category||"Other"))];
+  document.querySelector("#filters").innerHTML=cats.map(c=>`
+    <button class="filter ${c===currentCategory?"active":""}" data-category="${escapeHtml(c)}">${escapeHtml(c)}</button>
+  `).join("");
+
+  document.querySelectorAll(".filter").forEach(btn=>{
+    btn.onclick=()=>{
+      currentCategory=btn.dataset.category;
+      renderFilters();
+      renderProducts();
+    };
+  });
+}
+
+function renderProducts(){
+  const q=document.querySelector("#search").value.toLowerCase().trim();
+  let rows=PRODUCTS.filter(x=>+x.active===1);
+
+  if(currentCategory!=="All"){
+    rows=rows.filter(x=>(x.category||"Other")===currentCategory);
+  }
+  if(q){
+    rows=rows.filter(x=>`${x.name} ${x.category} ${x.description}`.toLowerCase().includes(q));
+  }
+
+  const groups={};
+  rows.forEach(x=>{
+    const c=x.category||"Other";
+    (groups[c] ||= []).push(x);
+  });
+
+  const keys=Object.keys(groups).sort();
+  if(!keys.length){
+    document.querySelector("#products").innerHTML='<div class="empty">No products found.</div>';
+    return;
+  }
+
+  document.querySelector("#products").innerHTML=keys.map(c=>`
+    <section class="category">
+      <h3>${escapeHtml(c)}</h3>
+      <div class="grid">
+        ${groups[c].sort((a,b)=>a.name.localeCompare(b.name)).map(x=>{
+          const qty=Number(x.quantity||0);
+          return `
+            <article class="card">
+              <div>
+                <h4>${escapeHtml(x.name)}</h4>
+                <div class="desc">${escapeHtml(x.description||"")}</div>
+              </div>
+              <div class="price-row">
+                <div class="price">${money(x.price)}</div>
+                <div class="stock ${qty>0?"in":"out"}">${qty>0?qty+" available":"Unavailable"}</div>
+              </div>
+              <div class="select-row">
+                <input class="qty" id="qty-${escapeId(x.id)}" type="number" min="1" max="${qty}" value="1" ${qty<1?"disabled":""}>
+                <button class="select-btn" ${qty<1?"disabled":""} onclick="addProduct('${jsString(x.id)}')">Select</button>
+              </div>
+            </article>`;
+        }).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+function addProduct(id){
+  const p=PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  const input=document.querySelector("#qty-"+escapeId(id));
+  let qty=Math.max(1,Math.floor(Number(input?.value||1)));
+  qty=Math.min(qty,Number(p.quantity||0));
+  if(qty<1) return;
+  const existing=CART.get(id);
+  const newQty=Math.min((existing?.qty||0)+qty,Number(p.quantity||0));
+  CART.set(id,{product:p,qty:newQty});
+  renderCart();
+  document.querySelector("#request").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function removeProduct(id){
+  CART.delete(id);
+  renderCart();
+}
+
+function changeCartQty(id,value){
+  const item=CART.get(id);
+  if(!item) return;
+  const max=Number(item.product.quantity||0);
+  const qty=Math.max(1,Math.min(max,Math.floor(Number(value||1))));
+  item.qty=qty;
+  CART.set(id,item);
+  renderCart();
+}
+
+function renderCart(){
+  const box=document.querySelector("#requestList");
+  if(!CART.size){
+    box.innerHTML='<div class="empty">No products selected yet.</div>';
+    return;
+  }
+
+  let total=0;
+  const rows=[...CART.values()].map(({product:p,qty})=>{
+    const line=Number(p.price||0)*qty;
+    total+=line;
+    return `
+      <div class="request-item">
+        <div><strong>${escapeHtml(p.name)}</strong><br><small>${money(p.price)} each</small></div>
+        <input class="qty" type="number" min="1" max="${Number(p.quantity||0)}" value="${qty}" onchange="changeCartQty('${jsString(p.id)}',this.value)">
+        <strong class="line-total">${money(line)}</strong>
+        <button class="remove" onclick="removeProduct('${jsString(p.id)}')" aria-label="Remove">×</button>
+      </div>`;
+  }).join("");
+
+  box.innerHTML=rows+`<div class="total"><span>Estimated Total</span><span>${money(total)}</span></div>`;
+}
+
+document.querySelector("#search").addEventListener("input",renderProducts);
+
+document.querySelector("#requestForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(!CART.size){
+    alert("Please select at least one product.");
+    return;
+  }
+
+  const name=document.querySelector("#customerName").value.trim();
+  const phone=document.querySelector("#customerPhone").value.trim();
+  const email=document.querySelector("#customerEmail").value.trim();
+  const notes=document.querySelector("#customerNotes").value.trim();
+
+  let total=0;
+  const lines=[...CART.values()].map(({product:p,qty})=>{
+    const line=Number(p.price||0)*qty;
+    total+=line;
+    return `${p.name} — Qty ${qty} — ${money(p.price)} each — ${money(line)}`;
+  });
+
+  const subject=`JAB Innovations Request - ${name}`;
+  const body=[
+    "JAB Innovations Product Request",
+    "",
+    `Name: ${name}`,
+    `Phone: ${phone}`,
+    `Email: ${email}`,
+    "",
+    "Requested Products:",
+    ...lines,
+    "",
+    `Estimated Total: ${money(total)}`,
+    notes ? `Notes: ${notes}` : "",
+    "",
+    "This is a product request, not a completed purchase."
+  ].filter(Boolean).join("\n");
+
+  window.location.href=`mailto:${encodeURIComponent(SALES_EMAIL)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+});
+
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+function escapeId(value){ return String(value).replace(/[^a-zA-Z0-9_-]/g,"_"); }
+function jsString(value){ return String(value).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+fetch("/api/products")
+  .then(r=>{if(!r.ok) throw new Error(); return r.json();})
+  .then(data=>{PRODUCTS=data;renderFilters();renderProducts();})
+  .catch(()=>{document.querySelector("#products").innerHTML='<div class="empty">Catalog temporarily unavailable.</div>';});
+</script>
+</body>
+</html>
+'''
+
+out = Path("/mnt/data/JAB-index-email-request.html")
+out.write_text(html, encoding="utf-8")
+print(out)
 <!doctype html>
 <html lang="en">
 <head>
