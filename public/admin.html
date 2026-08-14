@@ -1,1 +1,438 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JAB Admin</title><link rel="stylesheet" href="/styles.css"></head><body><div class="topbar">JAB Innovations Admin</div><main class="wrap"><section class="panel"><div class="toolbar"><div><h1>Catalog Manager</h1><p class="muted">Edits save permanently to Cloudflare D1.</p></div><button class="btn" onclick="openModal()">+ Add Product</button></div><div id="error" style="color:#fb7185"></div><div id="stats" class="stats"></div><div class="table-wrap"><table class="table"><thead><tr><th>Product</th><th>Cost</th><th>Price</th><th>Quantity</th><th>Visible</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table></div></section></main><div id="modal" class="modal"><form class="modal-card" onsubmit="submitProduct(event)"><div class="toolbar"><h2 id="modalTitle">Product</h2><button type="button" class="btn secondary" onclick="closeModal()">Close</button></div><div class="grid"><label class="field"><span>Name</span><input id="name" required></label><label class="field"><span>Category</span><input id="category" required></label><label class="field"><span>Cost</span><input id="cost" type="number" min="0" step=".01"></label><label class="field"><span>Price</span><input id="price" type="number" min="0" step=".01"></label><label class="field"><span>Quantity</span><input id="quantity" type="number" min="0"></label><label class="field"><span>Low stock</span><input id="low_stock" type="number" min="0" value="5"></label><label class="field full"><span>Image URL</span><input id="image_url"></label><label class="field full"><span>Description</span><textarea id="description" rows="4"></textarea></label><label class="field full"><span><input id="active" type="checkbox" checked> Visible on storefront</span></label></div><div class="toolbar" style="margin-top:18px"><span></span><button class="btn" type="submit">Save Product</button></div></form></div><div id="toast" class="toast"></div><script src="/admin.js"></script></body></html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JAB Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+
+<div class="topbar">JAB Innovations Admin</div>
+
+<main class="wrap">
+
+  <!-- ========================= -->
+  <!-- CATALOG MANAGER -->
+  <!-- ========================= -->
+
+  <section class="panel">
+
+    <div class="toolbar">
+      <div>
+        <h1>Catalog Manager</h1>
+        <p class="muted">
+          Edits save permanently to Cloudflare D1.
+        </p>
+      </div>
+
+      <button class="btn" onclick="openModal()">
+        + Add Product
+      </button>
+    </div>
+
+    <div id="error" style="color:#fb7185"></div>
+
+    <div id="stats" class="stats"></div>
+
+    <div class="table-wrap">
+
+      <table class="table">
+
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Cost</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Visible</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="rows"></tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+
+  <!-- ========================= -->
+  <!-- COA MANAGER -->
+  <!-- ========================= -->
+
+  <section class="panel" style="margin-top:30px">
+
+    <div class="toolbar">
+
+      <div>
+        <h1>COA Manager</h1>
+
+        <p class="muted">
+          Upload and manage Certificates of Analysis.
+        </p>
+      </div>
+
+      <button class="btn" onclick="openCoaModal()">
+        + Upload COA
+      </button>
+
+    </div>
+
+
+    <div id="coaError" style="color:#fb7185"></div>
+
+
+    <div class="table-wrap">
+
+      <table class="table">
+
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Batch / Lot</th>
+            <th>Lab</th>
+            <th>Test Date</th>
+            <th>COA</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="coaRows">
+
+          <tr>
+            <td colspan="6" class="muted">
+              No COAs uploaded yet.
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- ========================= -->
+<!-- PRODUCT MODAL -->
+<!-- ========================= -->
+
+<div id="modal" class="modal">
+
+  <form
+    class="modal-card"
+    onsubmit="submitProduct(event)"
+  >
+
+    <div class="toolbar">
+
+      <h2 id="modalTitle">
+        Product
+      </h2>
+
+      <button
+        type="button"
+        class="btn secondary"
+        onclick="closeModal()"
+      >
+        Close
+      </button>
+
+    </div>
+
+
+    <div class="grid">
+
+      <label class="field">
+
+        <span>Name</span>
+
+        <input
+          id="name"
+          required
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Category</span>
+
+        <input
+          id="category"
+          required
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Cost</span>
+
+        <input
+          id="cost"
+          type="number"
+          min="0"
+          step=".01"
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Price</span>
+
+        <input
+          id="price"
+          type="number"
+          min="0"
+          step=".01"
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Quantity</span>
+
+        <input
+          id="quantity"
+          type="number"
+          min="0"
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Low stock</span>
+
+        <input
+          id="low_stock"
+          type="number"
+          min="0"
+          value="5"
+        >
+
+      </label>
+
+
+      <label class="field full">
+
+        <span>Image URL</span>
+
+        <input
+          id="image_url"
+        >
+
+      </label>
+
+
+      <label class="field full">
+
+        <span>Description</span>
+
+        <textarea
+          id="description"
+          rows="4"
+        ></textarea>
+
+      </label>
+
+
+      <label class="field full">
+
+        <span>
+
+          <input
+            id="active"
+            type="checkbox"
+            checked
+          >
+
+          Visible on storefront
+
+        </span>
+
+      </label>
+
+    </div>
+
+
+    <div
+      class="toolbar"
+      style="margin-top:18px"
+    >
+
+      <span></span>
+
+      <button
+        class="btn"
+        type="submit"
+      >
+        Save Product
+      </button>
+
+    </div>
+
+  </form>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- COA UPLOAD MODAL -->
+<!-- ========================= -->
+
+<div id="coaModal" class="modal">
+
+  <form
+    id="coaForm"
+    class="modal-card"
+    onsubmit="submitCoa(event)"
+  >
+
+    <div class="toolbar">
+
+      <h2>
+        Upload COA
+      </h2>
+
+      <button
+        type="button"
+        class="btn secondary"
+        onclick="closeCoaModal()"
+      >
+        Close
+      </button>
+
+    </div>
+
+
+    <div class="grid">
+
+      <label class="field">
+
+        <span>Product</span>
+
+        <input
+          id="coa_product"
+          required
+          placeholder="Example: Tirzepatide 30 mg"
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Batch / Lot Number</span>
+
+        <input
+          id="coa_batch"
+          required
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Lab</span>
+
+        <input
+          id="coa_lab"
+          placeholder="Testing laboratory"
+        >
+
+      </label>
+
+
+      <label class="field">
+
+        <span>Test Date</span>
+
+        <input
+          id="coa_test_date"
+          type="date"
+        >
+
+      </label>
+
+
+      <label class="field full">
+
+        <span>COA PDF or Image</span>
+
+        <input
+          id="coa_file"
+          type="file"
+          accept=".pdf,image/*"
+          required
+        >
+
+      </label>
+
+
+      <label class="field full">
+
+        <span>
+
+          <input
+            id="coa_active"
+            type="checkbox"
+            checked
+          >
+
+          Visible on public COA page
+
+        </span>
+
+      </label>
+
+    </div>
+
+
+    <div
+      class="toolbar"
+      style="margin-top:18px"
+    >
+
+      <span id="coaUploadStatus" class="muted"></span>
+
+      <button
+        class="btn"
+        type="submit"
+      >
+        Upload COA
+      </button>
+
+    </div>
+
+  </form>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast"
+></div>
+
+
+<script src="/admin.js"></script>
+
+</body>
+</html>
