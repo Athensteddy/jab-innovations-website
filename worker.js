@@ -405,32 +405,7 @@ async function getCoaFile(id, env) {
     headers
   });
 }
-  const object = await env.COA_BUCKET.get(coa.file_key);
-
-  if (!object) {
-    return new Response("COA file not found.", {
-      status: 404
-    });
-  }
-
-  const headers = new Headers();
-
-  headers.set(
-    "content-type",
-    coa.content_type || "application/octet-stream"
-  );
-
-  headers.set(
-    "content-disposition",
-    `inline; filename="${String(coa.file_name || "coa").replace(/"/g, "")}"`
-  );
-
-  headers.set("cache-control", "private, max-age=300");
-
-  return new Response(object.body, {
-    headers
-  });
-
+ 
 async function deleteCoa(id, request, env) {
   if (!isAdmin(request, env)) {
     return unauthorized();
