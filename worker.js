@@ -348,6 +348,12 @@ async function uploadCoa(request, env) {
 async function getCoaFile(id, env) {
   await ensureCoaTable(env);
 
+  if (!env.COA_BUCKET) {
+    return new Response("COA storage is not connected.", {
+      status: 503
+    });
+  }
+
   const coa = await env.DB.prepare(`
     SELECT
       file_key,
@@ -366,6 +372,39 @@ async function getCoaFile(id, env) {
     });
   }
 
+  const object = await env.COA_BUCKET.get(coa.file_key);
+
+  if (!object) {
+    return new Response("COA file not found.", {
+      status: 404
+    });
+  }
+
+  const headers = new Headers();
+
+  object.writeHttpMetadata(headers);
+
+  headers.set(
+    "content-type",
+    coa.content_type || "application/pdf"
+  );
+
+  const safeName = String(coa.file_name || "coa.pdf")
+    .replace(/"/g, "");
+
+  headers.set(
+    "content-disposition",
+    `inline; filename="${safeName}"`
+  );
+
+  headers.set("etag", object.httpEtag);
+  headers.set("cache-control", "private, max-age=300");
+
+  return new Response(object.body, {
+    status: 200,
+    headers
+  });
+}
   const object = await env.COA_BUCKET.get(coa.file_key);
 
   if (!object) {
