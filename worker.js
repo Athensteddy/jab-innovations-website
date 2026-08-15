@@ -430,7 +430,7 @@ async function getCoaFile(id, env) {
   return new Response(object.body, {
     headers
   });
-}
+
 
 async function deleteCoa(id, request, env) {
   if (!isAdmin(request, env)) {
