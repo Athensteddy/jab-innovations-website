@@ -39,6 +39,11 @@ function isAdmin(request, env) {
   }
 }
 
+
+// ======================================================
+// PRODUCTS
+// ======================================================
+
 function cleanProduct(body, existingId = "") {
   const id = existingId || String(body.id || body.name || "")
     .toLowerCase()
@@ -183,11 +188,263 @@ async function deleteProduct(id, env) {
   });
 }
 
+
+// ======================================================
+// COA MANAGER
+// ======================================================
+
+async function ensureCoaTable(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS coas (
+      id TEXT PRIMARY KEY,
+      product_name TEXT NOT NULL,
+      batch_lot TEXT NOT NULL,
+      lab TEXT DEFAULT '',
+      test_date TEXT DEFAULT '',
+      file_key TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      content_type TEXT DEFAULT 'application/octet-stream',
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
+async function listCoas(request, env) {
+  await ensureCoaTable(env);
+
+  const admin = isAdmin(request, env);
+
+  const result = admin
+    ? await env.DB.prepare(`
+        SELECT *
+        FROM coas
+        ORDER BY created_at DESC
+      `).all()
+    : await env.DB.prepare(`
+        SELECT *
+        FROM coas
+        WHERE active = 1
+        ORDER BY created_at DESC
+      `).all();
+
+  return json(result.results || []);
+}
+
+async function uploadCoa(request, env) {
+  if (!isAdmin(request, env)) {
+    return unauthorized();
+  }
+
+  if (!env.COA_BUCKET) {
+    return json({
+      ok: false,
+      error: "R2 binding COA_BUCKET is not connected."
+    }, 503);
+  }
+
+  await ensureCoaTable(env);
+
+  try {
+    const form = await request.formData();
+
+    const productName = String(form.get("product_name") || "").trim();
+    const batchLot = String(form.get("batch_lot") || "").trim();
+    const lab = String(form.get("lab") || "").trim();
+    const testDate = String(form.get("test_date") || "").trim();
+    const active = String(form.get("active") || "1") === "1" ? 1 : 0;
+    const file = form.get("file");
+
+    if (!productName) {
+      throw new Error("Product is required.");
+    }
+
+    if (!batchLot) {
+      throw new Error("Batch / Lot number is required.");
+    }
+
+    if (!(file instanceof File)) {
+      throw new Error("Please choose a COA PDF or image.");
+    }
+
+    const allowed =
+      file.type === "application/pdf" ||
+      file.type.startsWith("image/");
+
+    if (!allowed) {
+      throw new Error("Only PDF or image files are allowed.");
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("COA file must be 10 MB or smaller.");
+    }
+
+    const id = crypto.randomUUID();
+
+    const safeName = file.name
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-");
+
+    const fileKey = `coas/${id}/${safeName}`;
+
+    await env.COA_BUCKET.put(
+      fileKey,
+      file.stream(),
+      {
+        httpMetadata: {
+          contentType: file.type || "application/octet-stream"
+        }
+      }
+    );
+
+    try {
+      await env.DB.prepare(`
+        INSERT INTO coas
+        (
+          id,
+          product_name,
+          batch_lot,
+          lab,
+          test_date,
+          file_key,
+          file_name,
+          content_type,
+          active,
+          created_at
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+      `)
+        .bind(
+          id,
+          productName,
+          batchLot,
+          lab,
+          testDate,
+          fileKey,
+          file.name,
+          file.type || "application/octet-stream",
+          active
+        )
+        .run();
+
+    } catch (e) {
+      await env.COA_BUCKET.delete(fileKey);
+      throw e;
+    }
+
+    return json({
+      ok: true,
+      id
+    }, 201);
+
+  } catch (e) {
+    return json({
+      ok: false,
+      error: e.message
+    }, 400);
+  }
+}
+
+async function getCoaFile(id, env) {
+  await ensureCoaTable(env);
+
+  const coa = await env.DB.prepare(`
+    SELECT
+      file_key,
+      file_name,
+      content_type,
+      active
+    FROM coas
+    WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+
+  if (!coa) {
+    return new Response("COA not found.", {
+      status: 404
+    });
+  }
+
+  const object = await env.COA_BUCKET.get(coa.file_key);
+
+  if (!object) {
+    return new Response("COA file not found.", {
+      status: 404
+    });
+  }
+
+  const headers = new Headers();
+
+  headers.set(
+    "content-type",
+    coa.content_type || "application/octet-stream"
+  );
+
+  headers.set(
+    "content-disposition",
+    `inline; filename="${String(coa.file_name || "coa").replace(/"/g, "")}"`
+  );
+
+  headers.set("cache-control", "private, max-age=300");
+
+  return new Response(object.body, {
+    headers
+  });
+}
+
+async function deleteCoa(id, request, env) {
+  if (!isAdmin(request, env)) {
+    return unauthorized();
+  }
+
+  await ensureCoaTable(env);
+
+  const coa = await env.DB.prepare(`
+    SELECT file_key
+    FROM coas
+    WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+
+  if (!coa) {
+    return json({
+      ok: false,
+      error: "COA not found."
+    }, 404);
+  }
+
+  if (env.COA_BUCKET && coa.file_key) {
+    await env.COA_BUCKET.delete(coa.file_key);
+  }
+
+  await env.DB.prepare(`
+    DELETE FROM coas
+    WHERE id = ?
+  `)
+    .bind(id)
+    .run();
+
+  return json({
+    ok: true
+  });
+}
+
+
+// ======================================================
+// WORKER
+// ======================================================
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Protect the Admin page itself.
+
+    // --------------------------------------------------
+    // PROTECTED ADMIN PAGE
+    // --------------------------------------------------
+
     if (
       url.pathname === "/admin" ||
       url.pathname === "/admin/" ||
@@ -200,7 +457,11 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    // Simple Worker status check.
+
+    // --------------------------------------------------
+    // HEALTH
+    // --------------------------------------------------
+
     if (url.pathname === "/api/health") {
       return json({
         ok: true,
@@ -208,17 +469,17 @@ export default {
       });
     }
 
-    // Public catalog can READ products.
-    // Adding products requires Admin login.
+
+    // --------------------------------------------------
+    // PRODUCTS
+    // --------------------------------------------------
+
     if (url.pathname === "/api/products") {
       if (!env.DB) {
-        return json(
-          {
-            ok: false,
-            error: "D1 binding DB is not connected yet."
-          },
-          503
-        );
+        return json({
+          ok: false,
+          error: "D1 binding DB is not connected yet."
+        }, 503);
       }
 
       if (request.method === "GET") {
@@ -233,25 +494,19 @@ export default {
         return createProduct(request, env);
       }
 
-      return json(
-        {
-          ok: false,
-          error: "Method not allowed."
-        },
-        405
-      );
+      return json({
+        ok: false,
+        error: "Method not allowed."
+      }, 405);
     }
 
-    // Changing or deleting individual products requires Admin login.
+
     if (url.pathname.startsWith("/api/products/")) {
       if (!env.DB) {
-        return json(
-          {
-            ok: false,
-            error: "D1 binding DB is not connected yet."
-          },
-          503
-        );
+        return json({
+          ok: false,
+          error: "D1 binding DB is not connected yet."
+        }, 503);
       }
 
       if (!isAdmin(request, env)) {
@@ -263,13 +518,10 @@ export default {
       );
 
       if (!id) {
-        return json(
-          {
-            ok: false,
-            error: "Product id required."
-          },
-          400
-        );
+        return json({
+          ok: false,
+          error: "Product id required."
+        }, 400);
       }
 
       if (request.method === "PUT") {
@@ -280,16 +532,81 @@ export default {
         return deleteProduct(id, env);
       }
 
-      return json(
-        {
-          ok: false,
-          error: "Method not allowed."
-        },
-        405
-      );
+      return json({
+        ok: false,
+        error: "Method not allowed."
+      }, 405);
     }
 
-    // Everything else remains public.
+
+    // --------------------------------------------------
+    // COAs
+    // --------------------------------------------------
+
+    if (url.pathname === "/api/coas") {
+      if (!env.DB) {
+        return json({
+          ok: false,
+          error: "D1 binding DB is not connected."
+        }, 503);
+      }
+
+      if (request.method === "GET") {
+        return listCoas(request, env);
+      }
+
+      if (request.method === "POST") {
+        return uploadCoa(request, env);
+      }
+
+      return json({
+        ok: false,
+        error: "Method not allowed."
+      }, 405);
+    }
+
+
+    if (
+      url.pathname.startsWith("/api/coas/") &&
+      url.pathname.endsWith("/file")
+    ) {
+      const id = decodeURIComponent(
+        url.pathname
+          .slice("/api/coas/".length)
+          .slice(0, -"/file".length)
+      );
+
+      return getCoaFile(id, env);
+    }
+
+
+    if (url.pathname.startsWith("/api/coas/")) {
+      const id = decodeURIComponent(
+        url.pathname.slice("/api/coas/".length)
+      );
+
+      if (!id) {
+        return json({
+          ok: false,
+          error: "COA id required."
+        }, 400);
+      }
+
+      if (request.method === "DELETE") {
+        return deleteCoa(id, request, env);
+      }
+
+      return json({
+        ok: false,
+        error: "Method not allowed."
+      }, 405);
+    }
+
+
+    // --------------------------------------------------
+    // STATIC SITE
+    // --------------------------------------------------
+
     return env.ASSETS.fetch(request);
   }
 };
