@@ -431,7 +431,6 @@ async function getCoaFile(id, env) {
     headers
   });
 
-
 async function deleteCoa(id, request, env) {
   if (!isAdmin(request, env)) {
     return unauthorized();
