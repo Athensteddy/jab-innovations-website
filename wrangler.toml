@@ -11,3 +11,7 @@ run_worker_first = ["/api/*", "/admin", "/admin/*", "/admin.html"]
 binding = "DB"
 database_name = "jab-innovations-db"
 database_id = "a2c0f5d3-d6ce-4bcc-aa2e-1c12de80a8dd"
+
+[[r2_buckets]]
+binding = "COA_BUCKET"
+bucket_name = "jab-coas"
