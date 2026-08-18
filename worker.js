@@ -469,7 +469,37 @@ Log in to JAB Admin to review this order.`
       console.error("New order email notification failed:", emailError);
     }
   }
+  if (env.SEND_EMAIL) {
+    try {
+      await env.SEND_EMAIL.send({
+        to: customer.email,
+        from: "orders@jab-innovations154.com",
+        subject: `JAB Innovations — Order Received ${orderNumber}`,
+        text:
+`Thank you, ${customer.name}.
 
+We received your JAB Innovations order.
+
+Order: ${orderNumber}
+
+ITEMS
+${productRows.map(item => `${item.name} x ${item.qty} — $${item.lineTotal.toFixed(2)}`).join("\n")}
+
+TOTAL
+$${total.toFixed(2)}
+
+STATUS
+Order received — pending confirmation.
+
+We will send another email when your order is confirmed.
+
+JAB Innovations
+Advancing Research Through Quality and Innovation.`
+      });
+    } catch (emailError) {
+      console.error("Customer order receipt email failed:", emailError);
+    }
+  }
   return json({
     ok: true,
     order: { id: orderId, order_number: orderNumber, status: "pending_payment", payment_status: "not_configured", subtotal, shipping_amount: shippingAmount, tax_amount: taxAmount, total, currency: "USD" },
