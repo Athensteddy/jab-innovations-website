@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Account | JAB Innovations</title>
+<style>
+:root{--bg:#07070b;--panel:#12121a;--line:#2d2d38;--text:#f7f7fb;--muted:#aaa9b5;--purple:#8b2cf5;--purple2:#a94cff;--green:#4ade80;--red:#fb7185}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top right,rgba(139,44,245,.18),transparent 34%),var(--bg);color:var(--text)}header{background:#09090e;border-bottom:1px solid var(--line)}.nav{max-width:1080px;margin:auto;padding:20px 22px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:27px;font-weight:900}.brand span{color:var(--purple2)}.links{display:flex;gap:18px}.links a{color:#c1c0ca;text-decoration:none;font-weight:800}.wrap{max-width:1080px;margin:auto;padding:46px 22px 80px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:linear-gradient(145deg,#171720,#111118);border:1px solid var(--line);border-radius:18px;padding:22px}.panel h1,.panel h2{margin-top:0}.muted{color:var(--muted)}.form{display:grid;gap:12px}.field{display:grid;gap:6px}.field label{font-size:13px;color:var(--muted);font-weight:800}.field input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d0d13;color:#fff}.btn{border:0;border-radius:11px;padding:13px 18px;font-weight:900;cursor:pointer}.primary{background:linear-gradient(135deg,var(--purple),var(--purple2));color:white}.secondary{background:#242431;color:white}.danger{background:#551e2c;color:#fff}.hidden{display:none!important}.tabs{display:flex;gap:8px;margin-bottom:18px}.tab{flex:1}.tab.active{outline:2px solid var(--purple2)}.msg{margin-top:12px;color:var(--muted);min-height:20px}.address,.order{border:1px solid var(--line);border-radius:13px;padding:14px;margin-top:12px;background:#0d0d13}.order-items{margin-top:8px;color:var(--muted);font-size:13px}.status{font-size:12px;color:#f0c674}.head-row{display:flex;justify-content:space-between;gap:10px;align-items:center}.address-actions{margin-top:10px}.address-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}@media(max-width:760px){.grid,.address-grid{grid-template-columns:1fr}.full{grid-column:auto}.nav{align-items:flex-start;gap:16px}.links{flex-wrap:wrap;justify-content:flex-end}}
+</style>
+</head>
+<body>
+<header><div class="nav"><div class="brand">JAB <span>Innovations</span></div><nav class="links"><a href="/">Shop</a><a href="/coa.html">COA</a><a href="/resources.html">Resources</a></nav></div></header>
+<main class="wrap">
+<section id="authPanel" class="panel">
+  <h1>Customer Account</h1><p class="muted">Sign in to save shipping/billing information and view orders.</p>
+  <div class="tabs"><button id="loginTab" class="btn secondary tab active">Sign In</button><button id="registerTab" class="btn secondary tab">Create Account</button></div>
+  <form id="loginForm" class="form">
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="email" required></div>
+    <div class="field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+    <button class="btn primary" type="submit">Sign In</button>
+  </form>
+  <form id="registerForm" class="form hidden">
+    <div class="field"><label>Name</label><input id="registerName" autocomplete="name" required></div>
+    <div class="field"><label>Phone</label><input id="registerPhone" type="tel" autocomplete="tel"></div>
+    <div class="field"><label>Email</label><input id="registerEmail" type="email" autocomplete="email" required></div>
+    <div class="field"><label>Password</label><input id="registerPassword" type="password" minlength="10" autocomplete="new-password" required></div>
+    <div class="muted" style="font-size:12px">Use at least 10 characters.</div>
+    <button class="btn primary" type="submit">Create Account</button>
+  </form>
+  <div id="authMsg" class="msg"></div>
+</section>
+
+<section id="accountPanel" class="hidden">
+  <div class="head-row" style="margin-bottom:20px"><div><h1 style="margin:0">My Account</h1><div id="welcome" class="muted"></div></div><button id="logoutBtn" class="btn secondary">Sign Out</button></div>
+  <div class="grid">
+    <section class="panel"><h2>Saved Addresses</h2><div id="addresses"><div class="muted">Loading...</div></div></section>
+    <section class="panel">
+      <h2>Add Address</h2>
+      <form id="addressForm" class="form address-grid">
+        <div class="field"><label>Label</label><input id="addrLabel" value="Primary"></div>
+        <div class="field"><label>Recipient name</label><input id="addrName" autocomplete="name" required></div>
+        <div class="field full"><label>Company (optional)</label><input id="addrCompany" autocomplete="organization"></div>
+        <div class="field full"><label>Street address</label><input id="addrLine1" autocomplete="address-line1" required></div>
+        <div class="field full"><label>Address line 2</label><input id="addrLine2" autocomplete="address-line2"></div>
+        <div class="field"><label>City</label><input id="addrCity" autocomplete="address-level2" required></div>
+        <div class="field"><label>State</label><input id="addrState" autocomplete="address-level1" required></div>
+        <div class="field"><label>ZIP / Postal code</label><input id="addrZip" autocomplete="postal-code" required></div>
+        <div class="field"><label>Phone</label><input id="addrPhone" type="tel" autocomplete="tel"></div>
+        <label class="muted"><input id="defaultShip" type="checkbox"> Default shipping</label>
+        <label class="muted"><input id="defaultBill" type="checkbox"> Default billing</label>
+        <button class="btn primary full" type="submit">Save Address</button>
+      </form><div id="addressMsg" class="msg"></div>
+    </section>
+  </div>
+  <section class="panel" style="margin-top:20px"><h2>Order History</h2><div id="orders"><div class="muted">Loading...</div></div></section>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));const money=v=>"$"+Number(v||0).toFixed(2);
+async function api(url,options={}){const r=await fetch(url,{headers:{"content-type":"application/json",...(options.headers||{})},...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||"Request failed.");return d}
+function setTab(which){const login=which==="login";$("#loginForm").classList.toggle("hidden",!login);$("#registerForm").classList.toggle("hidden",login);$("#loginTab").classList.toggle("active",login);$("#registerTab").classList.toggle("active",!login);$("#authMsg").textContent=""}
+$("#loginTab").onclick=()=>setTab("login");$("#registerTab").onclick=()=>setTab("register");
+$("#loginForm").onsubmit=async e=>{e.preventDefault();try{await api("/api/auth/login",{method:"POST",body:JSON.stringify({email:$("#loginEmail").value,password:$("#loginPassword").value})});await load()}catch(err){$("#authMsg").textContent=err.message}};
+$("#registerForm").onsubmit=async e=>{e.preventDefault();try{await api("/api/auth/register",{method:"POST",body:JSON.stringify({name:$("#registerName").value,phone:$("#registerPhone").value,email:$("#registerEmail").value,password:$("#registerPassword").value})});await load()}catch(err){$("#authMsg").textContent=err.message}};
+$("#logoutBtn").onclick=async()=>{await api("/api/auth/logout",{method:"POST",body:"{}"});location.reload()};
+$("#addressForm").onsubmit=async e=>{e.preventDefault();const body={label:$("#addrLabel").value,recipient_name:$("#addrName").value,company:$("#addrCompany").value,line1:$("#addrLine1").value,line2:$("#addrLine2").value,city:$("#addrCity").value,state:$("#addrState").value,postal_code:$("#addrZip").value,country:"US",phone:$("#addrPhone").value,is_default_shipping:$("#defaultShip").checked,is_default_billing:$("#defaultBill").checked};try{await api("/api/addresses",{method:"POST",body:JSON.stringify(body)});$("#addressMsg").textContent="Address saved.";e.target.reset();$("#addrLabel").value="Primary";await loadAddresses()}catch(err){$("#addressMsg").textContent=err.message}};
+async function deleteAddress(id){if(!confirm("Delete this saved address?"))return;await api("/api/addresses/"+encodeURIComponent(id),{method:"DELETE",body:"{}"});await loadAddresses()}
+async function loadAddresses(){const a=await api("/api/addresses");$("#addresses").innerHTML=a.length?a.map(x=>`<div class="address"><strong>${esc(x.label)}</strong>${x.is_default_shipping?` <span class="status">Default shipping</span>`:""}${x.is_default_billing?` <span class="status">Default billing</span>`:""}<div class="muted" style="margin-top:7px">${esc(x.recipient_name)}<br>${esc(x.line1)}${x.line2?`<br>${esc(x.line2)}`:""}<br>${esc(x.city)}, ${esc(x.state)} ${esc(x.postal_code)}</div><div class="address-actions"><button class="btn danger" onclick="deleteAddress('${esc(x.id)}')">Delete</button></div></div>`).join(""):'<div class="muted">No saved addresses yet.</div>'}
+async function loadOrders(){const o=await api("/api/orders");$("#orders").innerHTML=o.length?o.map(x=>`<div class="order"><div class="head-row"><strong>${esc(x.order_number)}</strong><span class="status">${esc(x.status)} / ${esc(x.payment_status)}</span></div><div class="muted">${new Date(x.created_at+"Z").toLocaleString()} · ${money(x.total)}</div><div class="order-items">${(x.items||[]).map(i=>`${esc(i.product_name)} × ${i.quantity} — ${money(i.line_total)}`).join("<br>")}</div></div>`).join(""):'<div class="muted">No orders yet.</div>'}
+async function load(){const me=await api("/api/auth/me");if(!me.authenticated){$("#authPanel").classList.remove("hidden");$("#accountPanel").classList.add("hidden");return}$("#authPanel").classList.add("hidden");$("#accountPanel").classList.remove("hidden");$("#welcome").textContent=`${me.customer.name} · ${me.customer.email}`;$("#addrName").value=me.customer.name||"";$("#addrPhone").value=me.customer.phone||"";await Promise.all([loadAddresses(),loadOrders()])}
+load().catch(err=>{$("#authMsg").textContent=err.message});
+</script>
+</body></html>

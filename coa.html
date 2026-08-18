@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Certificates of Analysis | JAB Innovations</title>
+
+  <style>
+    :root{
+      --bg:#07070b;
+      --panel:#12121a;
+      --line:#2d2d38;
+      --text:#f7f7fb;
+      --muted:#aaa9b5;
+      --purple:#8b2cf5;
+      --purple2:#a94cff;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      background:#09090d;
+      border-bottom:1px solid var(--line);
+      padding:24px 28px;
+    }
+
+    .nav{
+      max-width:1180px;
+      margin:auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:20px;
+    }
+
+    .brand{
+      font-size:30px;
+      font-weight:800;
+    }
+
+    .brand span{
+      color:var(--purple2);
+    }
+
+    .nav a{
+      color:#ddd;
+      text-decoration:none;
+      font-weight:700;
+      margin-left:22px;
+    }
+
+    .nav a:hover{
+      color:white;
+    }
+
+    main{
+      max-width:1180px;
+      margin:auto;
+      padding:55px 28px 90px;
+    }
+
+    .hero{
+      background:linear-gradient(135deg,#1a0c2e,#12091f);
+      border:1px solid #54267d;
+      border-radius:28px;
+      padding:45px;
+      margin-bottom:35px;
+    }
+
+    .eyebrow{
+      color:var(--purple2);
+      font-weight:800;
+      letter-spacing:4px;
+      margin-bottom:15px;
+    }
+
+    h1{
+      font-size:52px;
+      margin:0 0 16px;
+      line-height:1;
+    }
+
+    .hero p{
+      color:var(--muted);
+      font-size:19px;
+      line-height:1.6;
+      max-width:800px;
+      margin:0;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:30px;
+    }
+
+    .panel h2{
+      margin-top:0;
+      font-size:30px;
+    }
+
+    .search{
+      width:100%;
+      padding:15px 18px;
+      background:#0b0b11;
+      color:white;
+      border:1px solid #3a3a45;
+      border-radius:12px;
+      font-size:16px;
+      margin-bottom:25px;
+    }
+
+    .coa-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:20px;
+    }
+
+    .coa-card{
+      background:#0d0d13;
+      border:1px solid #34343f;
+      border-radius:18px;
+      padding:22px;
+    }
+
+    .coa-card h3{
+      margin:0 0 18px;
+      font-size:22px;
+    }
+
+    .row{
+      margin:9px 0;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .row strong{
+      color:#fff;
+    }
+
+    .btn{
+      display:inline-block;
+      margin-top:17px;
+      padding:12px 18px;
+      border-radius:10px;
+      background:linear-gradient(135deg,var(--purple),var(--purple2));
+      color:#fff;
+      font-weight:800;
+      text-decoration:none;
+    }
+
+    .empty,
+    .error{
+      color:var(--muted);
+      padding:25px 0;
+    }
+
+    .error{
+      color:#fb7185;
+    }
+
+    .research-note{
+      margin-top:35px;
+      background:#12091f;
+      border:1px solid #54267d;
+      border-radius:22px;
+      padding:28px;
+    }
+
+    .research-note h2{
+      margin-top:0;
+    }
+
+    .research-note p{
+      color:var(--muted);
+      line-height:1.7;
+    }
+
+    footer{
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      padding:30px 28px;
+      text-align:center;
+    }
+
+    @media(max-width:650px){
+      .nav{
+        align-items:flex-start;
+      }
+
+      .brand{
+        font-size:24px;
+      }
+
+      .nav a{
+        margin-left:10px;
+        font-size:14px;
+      }
+
+      main{
+        padding:32px 18px 65px;
+      }
+
+      .hero{
+        padding:30px 24px;
+      }
+
+      h1{
+        font-size:40px;
+      }
+
+      .panel{
+        padding:22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand">
+      JAB <span>Innovations</span>
+    </div>
+
+    <nav>
+      <a href="/">Home</a>
+      <a href="/coa.html">COA</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="eyebrow">JAB INNOVATIONS</div>
+    <h1>Certificates of Analysis</h1>
+
+    <p>
+      View available third-party laboratory documentation for
+      JAB Innovations research products.
+    </p>
+  </section>
+
+
+  <section class="panel">
+    <h2>Available COAs</h2>
+
+    <input
+      id="search"
+      class="search"
+      placeholder="Search product, batch, or laboratory..."
+    >
+
+    <div id="status" class="empty">
+      Loading certificates...
+    </div>
+
+    <div id="coaGrid" class="coa-grid"></div>
+  </section>
+
+
+  <section class="research-note">
+    <h2>Research Use Only</h2>
+
+    <p>
+      Products listed by JAB Innovations are intended solely for
+      laboratory, analytical, and research purposes. Not for human
+      consumption or medical use.
+    </p>
+  </section>
+
+</main>
+
+
+<footer>
+  © 2026 JAB Innovations
+</footer>
+
+
+<script>
+  let coas = [];
+
+  function safeText(value) {
+    return String(value || "");
+  }
+
+  function render(list) {
+    const grid = document.getElementById("coaGrid");
+    const status = document.getElementById("status");
+
+    grid.innerHTML = "";
+
+    if (!list.length) {
+      status.textContent = "No Certificates of Analysis are currently available.";
+      status.style.display = "block";
+      return;
+    }
+
+    status.style.display = "none";
+
+    list.forEach(coa => {
+      const card = document.createElement("div");
+      card.className = "coa-card";
+
+      const title = document.createElement("h3");
+      title.textContent = safeText(coa.product_name);
+
+      const batch = document.createElement("div");
+      batch.className = "row";
+      batch.innerHTML = "<strong>Batch / Lot:</strong> ";
+      batch.append(document.createTextNode(safeText(coa.batch_lot)));
+
+      const lab = document.createElement("div");
+      lab.className = "row";
+      lab.innerHTML = "<strong>Laboratory:</strong> ";
+      lab.append(document.createTextNode(safeText(coa.lab || "—")));
+
+      const date = document.createElement("div");
+      date.className = "row";
+      date.innerHTML = "<strong>Test Date:</strong> ";
+      date.append(document.createTextNode(safeText(coa.test_date || "—")));
+
+      const link = document.createElement("a");
+      link.className = "btn";
+      link.textContent = "View COA";
+      link.href = "/api/coas/" + encodeURIComponent(coa.id) + "/file";
+      link.target = "_blank";
+      link.rel = "noopener";
+
+      card.append(title, batch, lab, date, link);
+      grid.appendChild(card);
+    });
+  }
+
+  async function loadCoas() {
+    const status = document.getElementById("status");
+
+    try {
+      const response = await fetch("/api/coas", {
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to load COAs.");
+      }
+
+      coas = await response.json();
+      render(coas);
+
+    } catch (error) {
+      status.textContent = "Certificates could not be loaded.";
+      status.className = "error";
+    }
+  }
+
+  document.getElementById("search").addEventListener("input", function() {
+    const q = this.value.toLowerCase().trim();
+
+    const filtered = coas.filter(coa =>
+      safeText(coa.product_name).toLowerCase().includes(q) ||
+      safeText(coa.batch_lot).toLowerCase().includes(q) ||
+      safeText(coa.lab).toLowerCase().includes(q)
+    );
+
+    render(filtered);
+  });
+
+  loadCoas();
+</script>
+
+</body>
+</html>
