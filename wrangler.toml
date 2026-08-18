@@ -15,3 +15,6 @@ database_id = "a2c0f5d3-d6ce-4bcc-aa2e-1c12de80a8dd"
 [[r2_buckets]]
 binding = "COA_BUCKET"
 bucket_name = "jab-coas"
+[[send_email]]
+name = "SEND_EMAIL"
+destination_address = "sales@jab-innovations154.com"
