@@ -114,3 +114,23 @@ async function removeCoa(id) {
 }
 
 loadCoas();
+
+// =========================
+// CUSTOMER ORDERS (READ-ONLY)
+// =========================
+let adminOrders = [];
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadAdminOrders(){
+  try{
+    $('#orderError').textContent='';
+    adminOrders=await api('/api/admin/orders');
+    const rows=$('#orderRows');
+    if(!adminOrders.length){rows.innerHTML='<tr><td colspan="6" class="muted">No customer orders yet.</td></tr>';return}
+    rows.innerHTML=adminOrders.map(o=>{
+      const items=(o.items||[]).map(i=>`${esc(i.product_name)} × ${Number(i.quantity||0)}`).join('<br>');
+      const when=o.created_at?new Date(o.created_at+'Z').toLocaleString():'';
+      return `<tr><td><strong>${esc(o.order_number)}</strong><br><span class="muted">${esc(o.status)}</span></td><td><strong>${esc(o.customer_name)}</strong><br>${esc(o.customer_email)}<br><span class="muted">${esc(o.customer_phone||'')}</span></td><td>${items}</td><td><strong>${money(o.total)}</strong></td><td>${esc(o.payment_status)}</td><td>${esc(when)}</td></tr>`;
+    }).join('');
+  }catch(e){$('#orderError').textContent=e.message}
+}
+loadAdminOrders();
