@@ -417,6 +417,59 @@ async function createOrder(request, env) {
   }
   await env.DB.batch(statements);
 
+    // Send JAB an immediate new-order notification.
+  // Email failure must never cancel or lose a saved customer order.
+  if (env.SEND_EMAIL) {
+    try {
+      const itemLines = productRows
+        .map(item => `${item.name} x ${item.qty} — $${item.lineTotal.toFixed(2)}`)
+        .join("\n");
+
+      const shippingLines = [
+        shipping.recipient_name,
+        shipping.company,
+        shipping.line1,
+        shipping.line2,
+        `${shipping.city}, ${shipping.state} ${shipping.postal_code}`,
+        shipping.phone
+      ].filter(Boolean).join("\n");
+
+      await env.SEND_EMAIL.send({
+        to: "sales@jab-innovations154.com",
+        from: "orders@jab-innovations154.com",
+        subject: `New JAB Order — ${orderNumber}`,
+        text:
+`NEW JAB INNOVATIONS ORDER
+
+Order: ${orderNumber}
+
+CUSTOMER
+${customer.name}
+${customer.email}
+${customer.phone || ""}
+
+ITEMS
+${itemLines}
+
+TOTAL
+$${total.toFixed(2)}
+
+PAYMENT STATUS
+Pending
+
+SHIPPING
+${shippingLines}
+
+NOTES
+${notes || "None"}
+
+Log in to JAB Admin to review this order.`
+      });
+    } catch (emailError) {
+      console.error("New order email notification failed:", emailError);
+    }
+  }
+
   return json({
     ok: true,
     order: { id: orderId, order_number: orderNumber, status: "pending_payment", payment_status: "not_configured", subtotal, shipping_amount: shippingAmount, tax_amount: taxAmount, total, currency: "USD" },
