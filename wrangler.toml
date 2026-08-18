@@ -17,4 +17,3 @@ binding = "COA_BUCKET"
 bucket_name = "jab-coas"
 [[send_email]]
 name = "SEND_EMAIL"
-destination_address = "sales@jab-innovations154.com"
