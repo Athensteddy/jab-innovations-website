@@ -41,7 +41,7 @@ function isAdmin(request, env) {
 
 const SESSION_COOKIE = "jab_session";
 const SESSION_DAYS = 14;
-const PBKDF2_ITERATIONS = 160000;
+const PBKDF2_ITERATIONS = 100000;
 const enc = new TextEncoder();
 
 function bytesToBase64(bytes) {
