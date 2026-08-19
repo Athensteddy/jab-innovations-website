@@ -523,14 +523,25 @@ async function listOrders(request, env) {
 async function listAdminOrders(request, env) {
   if (!isAdmin(request, env)) return unauthorized();
   await ensureCustomerTables(env);
-  const result = await env.DB.prepare(`
-    SELECT o.id,o.order_number,o.status,o.payment_status,o.subtotal,o.shipping_amount,o.tax_amount,o.total,o.currency,o.shipping_json,o.billing_json,o.notes,o.created_at,
-           c.name AS customer_name,c.email AS customer_email,c.phone AS customer_phone
-    FROM orders o
-    JOIN customers c ON c.id=o.customer_id
-    ORDER BY o.created_at DESC
-    LIMIT 250
-  `).all();
+  await ensureFulfillmentTable(env);
+const result = await env.DB.prepare(`
+  SELECT
+    o.id,o.order_number,o.status,o.payment_status,
+    o.subtotal,o.shipping_amount,o.tax_amount,o.total,o.currency,
+    o.shipping_json,o.billing_json,o.notes,o.created_at,
+    c.name AS customer_name,
+    c.email AS customer_email,
+    c.phone AS customer_phone,
+    f.carrier,
+    f.tracking_number,
+    f.confirmed_at,
+    f.shipped_at
+  FROM orders o
+  JOIN customers c ON c.id=o.customer_id
+  LEFT JOIN order_fulfillment f ON f.order_id=o.id
+  ORDER BY o.created_at DESC
+  LIMIT 250
+`).all();SS
   const orders = result.results || [];
   for (const order of orders) {
     const items = await env.DB.prepare(`SELECT product_id,product_name,unit_price,quantity,line_total FROM order_items WHERE order_id=? ORDER BY rowid`).bind(order.id).all();
@@ -542,7 +553,183 @@ async function listAdminOrders(request, env) {
   }
   return json(orders);
 }
+// ======================================================
+// ORDER CONFIRMATION / SHIPPING
+// ======================================================
 
+async function ensureFulfillmentTable(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS order_fulfillment (
+      order_id TEXT PRIMARY KEY,
+      carrier TEXT NOT NULL DEFAULT '',
+      tracking_number TEXT NOT NULL DEFAULT '',
+      confirmed_at TEXT,
+      shipped_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    )
+  `).run();
+}
+
+async function getAdminOrderDetail(id, env) {
+  const order = await env.DB.prepare(`
+    SELECT
+      o.id,o.order_number,o.status,o.payment_status,o.total,o.currency,
+      c.name AS customer_name,c.email AS customer_email,c.phone AS customer_phone
+    FROM orders o
+    JOIN customers c ON c.id=o.customer_id
+    WHERE o.id=?
+  `).bind(id).first();
+
+  if (!order) return null;
+
+  const items = await env.DB.prepare(`
+    SELECT product_name,unit_price,quantity,line_total
+    FROM order_items
+    WHERE order_id=?
+    ORDER BY rowid
+  `).bind(id).all();
+
+  order.items = items.results || [];
+  return order;
+}
+
+async function confirmAdminOrder(id, request, env) {
+  if (!isAdmin(request, env)) return unauthorized();
+  assertSameOrigin(request);
+  await ensureCustomerTables(env);
+  await ensureFulfillmentTable(env);
+
+  const order = await getAdminOrderDetail(id, env);
+  if (!order) return json({ ok:false, error:"Order not found." }, 404);
+
+  if (order.status === "shipped") {
+    return json({ ok:false, error:"This order has already shipped." }, 409);
+  }
+
+  await env.DB.prepare(`
+    UPDATE orders
+    SET status='confirmed', updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(id).run();
+
+  await env.DB.prepare(`
+    INSERT INTO order_fulfillment (order_id,confirmed_at,updated_at)
+    VALUES (?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+    ON CONFLICT(order_id) DO UPDATE SET
+      confirmed_at=COALESCE(order_fulfillment.confirmed_at,CURRENT_TIMESTAMP),
+      updated_at=CURRENT_TIMESTAMP
+  `).bind(id).run();
+
+  if (env.SEND_EMAIL) {
+    try {
+      const itemLines = order.items.map(i =>
+        `${i.product_name} x ${i.quantity} — $${Number(i.line_total).toFixed(2)}`
+      ).join("\n");
+
+      await env.SEND_EMAIL.send({
+        to: order.customer_email,
+        from: "orders@jab-innovations154.com",
+        subject: `JAB Innovations — Order Confirmed ${order.order_number}`,
+        text:
+`Hello ${order.customer_name},
+
+Your JAB Innovations order has been confirmed.
+
+Order: ${order.order_number}
+
+ITEMS
+${itemLines}
+
+TOTAL
+$${Number(order.total).toFixed(2)}
+
+STATUS
+Confirmed
+
+We will send another email with your tracking number when the order ships.
+
+JAB Innovations
+Advancing Research Through Quality and Innovation.`
+      });
+    } catch (emailError) {
+      console.error("Order confirmation email failed:", emailError);
+    }
+  }
+
+  return json({ ok:true, status:"confirmed" });
+}
+
+async function shipAdminOrder(id, request, env) {
+  if (!isAdmin(request, env)) return unauthorized();
+  assertSameOrigin(request);
+  await ensureCustomerTables(env);
+  await ensureFulfillmentTable(env);
+
+  const body = await request.json();
+  const carrier = cleanText(body.carrier, 60);
+  const trackingNumber = cleanText(body.tracking_number, 120);
+
+  if (!carrier) throw new Error("Carrier is required.");
+  if (!trackingNumber) throw new Error("Tracking number is required.");
+
+  const order = await getAdminOrderDetail(id, env);
+  if (!order) return json({ ok:false, error:"Order not found." }, 404);
+
+  await env.DB.prepare(`
+    UPDATE orders
+    SET status='shipped', updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(id).run();
+
+  await env.DB.prepare(`
+    INSERT INTO order_fulfillment
+      (order_id,carrier,tracking_number,confirmed_at,shipped_at,updated_at)
+    VALUES (?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+    ON CONFLICT(order_id) DO UPDATE SET
+      carrier=excluded.carrier,
+      tracking_number=excluded.tracking_number,
+      confirmed_at=COALESCE(order_fulfillment.confirmed_at,CURRENT_TIMESTAMP),
+      shipped_at=CURRENT_TIMESTAMP,
+      updated_at=CURRENT_TIMESTAMP
+  `).bind(id,carrier,trackingNumber).run();
+
+  if (env.SEND_EMAIL) {
+    try {
+      await env.SEND_EMAIL.send({
+        to: order.customer_email,
+        from: "orders@jab-innovations154.com",
+        subject: `JAB Innovations — Order Shipped ${order.order_number}`,
+        text:
+`Hello ${order.customer_name},
+
+Your JAB Innovations order has shipped.
+
+Order: ${order.order_number}
+
+Carrier: ${carrier}
+Tracking Number: ${trackingNumber}
+
+STATUS
+Shipped
+
+Please use the carrier's tracking service for the latest delivery information.
+
+JAB Innovations
+Advancing Research Through Quality and Innovation.`
+      });
+    } catch (emailError) {
+      console.error("Shipping email failed:", emailError);
+    }
+  }
+
+  return json({
+    ok:true,
+    status:"shipped",
+    carrier,
+    tracking_number:trackingNumber
+  });
+}
 // ======================================================
 // PRODUCTS (EXISTING SYSTEM - KEPT INTACT)
 // ======================================================
@@ -715,11 +902,30 @@ export default {
         return json({ ok: false, error: "Method not allowed." }, 405);
       }
 
-      // ADMIN ORDERS (read-only until live payment processing is connected)
-      if (url.pathname === "/api/admin/orders" && request.method === "GET") {
-        return await listAdminOrders(request, env);
-      }
+      // ADMIN ORDERS
+if (url.pathname === "/api/admin/orders" && request.method === "GET") {
+  return await listAdminOrders(request, env);
+}
 
+if (url.pathname.startsWith("/api/admin/orders/")) {
+  const parts = url.pathname.split("/");
+  const orderId = decodeURIComponent(parts[4] || "");
+  const action = parts[5] || "";
+
+  if (!orderId) {
+    return json({ ok:false, error:"Order id required." }, 400);
+  }
+
+  if (action === "confirm" && request.method === "POST") {
+    return await confirmAdminOrder(orderId, request, env);
+  }
+
+  if (action === "ship" && request.method === "POST") {
+    return await shipAdminOrder(orderId, request, env);
+  }
+
+  return json({ ok:false, error:"Method not allowed." }, 405);
+}
       // PRODUCTS
       if (url.pathname === "/api/products") {
         if (!env.DB) return json({ ok: false, error: "D1 binding DB is not connected yet." }, 503);
