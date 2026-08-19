@@ -541,7 +541,7 @@ const result = await env.DB.prepare(`
   LEFT JOIN order_fulfillment f ON f.order_id=o.id
   ORDER BY o.created_at DESC
   LIMIT 250
-`).all();SS
+`).all();
   const orders = result.results || [];
   for (const order of orders) {
     const items = await env.DB.prepare(`SELECT product_id,product_name,unit_price,quantity,line_total FROM order_items WHERE order_id=? ORDER BY rowid`).bind(order.id).all();
