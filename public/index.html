@@ -60,27 +60,6 @@ function addProduct(id){
     },1500);
   }
 }
-function removeProduct(id){
-  CART.delete(id);
-  saveCart();
-  renderCart();
-}
-
-function changeCartQty(id,value){
-  const item=CART.get(id);
-  if(!item)return;
-
-  const max=Number(item.product.quantity||0);
-
-  item.qty=Math.max(
-    1,
-    Math.min(max,Math.floor(Number(value||1)))
-  );
-
-  CART.set(id,item);
-  saveCart();
-  renderCart();
-}
 function renderCart(){const box=document.querySelector("#requestList");if(!CART.size){box.innerHTML='<div class="empty">No products selected yet.</div>';return}let total=0;const rows=[...CART.values()].map(({product:p,qty})=>{const line=Number(p.price||0)*qty;total+=line;return `<div class="request-item"><div><strong>${esc(p.name)}</strong><br><small>${money(p.price)} each</small></div><input class="qty" type="number" min="1" max="${Number(p.quantity||0)}" value="${qty}" onchange="changeCartQty('${js(p.id)}',this.value)"><strong class="line-total">${money(line)}</strong><button class="remove" onclick="removeProduct('${js(p.id)}')">×</button></div>`}).join("");box.innerHTML=rows+`<div class="total"><span>Estimated Total</span><span>${money(total)}</span></div>`}
 document.querySelector("#search").addEventListener("input",renderProducts);
 fetch("/api/products").then(r=>{if(!r.ok)throw new Error();return r.json()}).then(data=>{PRODUCTS=data;try{const saved=JSON.parse(localStorage.getItem("jab_cart")||"[]");saved.forEach(i=>{const p=PRODUCTS.find(x=>x.id===i.id);if(p&&Number(p.active)===1&&Number(p.quantity)>0){CART.set(p.id,{product:p,qty:Math.max(1,Math.min(Number(p.quantity),Math.floor(Number(i.qty||1))))})}})}catch{}renderFilters();renderProducts();renderCart()}).catch(()=>{document.querySelector("#products").innerHTML='<div class="empty">Catalog temporarily unavailable.</div>'});
