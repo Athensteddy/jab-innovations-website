@@ -118,19 +118,166 @@ loadCoas();
 // =========================
 // CUSTOMER ORDERS (READ-ONLY)
 // =========================
+// =========================
+// CUSTOMER ORDERS
+// =========================
+
 let adminOrders = [];
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function loadAdminOrders(){
-  try{
-    $('#orderError').textContent='';
-    adminOrders=await api('/api/admin/orders');
-    const rows=$('#orderRows');
-    if(!adminOrders.length){rows.innerHTML='<tr><td colspan="6" class="muted">No customer orders yet.</td></tr>';return}
-    rows.innerHTML=adminOrders.map(o=>{
-      const items=(o.items||[]).map(i=>`${esc(i.product_name)} × ${Number(i.quantity||0)}`).join('<br>');
-      const when=o.created_at?new Date(o.created_at+'Z').toLocaleString():'';
-      return `<tr><td><strong>${esc(o.order_number)}</strong><br><span class="muted">${esc(o.status)}</span></td><td><strong>${esc(o.customer_name)}</strong><br>${esc(o.customer_email)}<br><span class="muted">${esc(o.customer_phone||'')}</span></td><td>${items}</td><td><strong>${money(o.total)}</strong></td><td>${esc(o.payment_status)}</td><td>${esc(when)}</td></tr>`;
-    }).join('');
-  }catch(e){$('#orderError').textContent=e.message}
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
 }
+
+async function confirmOrder(id) {
+  if (!confirm('Confirm this order?')) return;
+
+  try {
+    await api('/api/admin/orders/' + encodeURIComponent(id) + '/confirm', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+
+    toast('Order confirmed');
+    await loadAdminOrders();
+
+  } catch (e) {
+    $('#orderError').textContent = e.message;
+  }
+}
+
+async function shipOrder(id) {
+  const carrier = prompt('Carrier (USPS, UPS, FedEx, etc.):');
+  if (!carrier) return;
+
+  const tracking = prompt('Tracking number:');
+  if (!tracking) return;
+
+  try {
+    await api('/api/admin/orders/' + encodeURIComponent(id) + '/ship', {
+      method: 'POST',
+      body: JSON.stringify({
+        carrier: carrier,
+        tracking_number: tracking
+      })
+    });
+
+    toast('Order marked shipped');
+    await loadAdminOrders();
+
+  } catch (e) {
+    $('#orderError').textContent = e.message;
+  }
+}
+
+async function loadAdminOrders() {
+  try {
+    $('#orderError').textContent = '';
+
+    adminOrders = await api('/api/admin/orders');
+
+    const rows = $('#orderRows');
+
+    if (!adminOrders.length) {
+      rows.innerHTML =
+        '<tr><td colspan="7" class="muted">No customer orders yet.</td></tr>';
+      return;
+    }
+
+    rows.innerHTML = adminOrders.map(o => {
+
+      const items = (o.items || [])
+        .map(i =>
+          `${esc(i.product_name)} × ${Number(i.quantity || 0)}`
+        )
+        .join('<br>');
+
+      const when = o.created_at
+        ? new Date(o.created_at + 'Z').toLocaleString()
+        : '';
+
+      let actions = '';
+
+      if (o.status !== 'confirmed' && o.status !== 'shipped') {
+        actions += `
+          <button class="btn"
+                  onclick="confirmOrder('${o.id}')">
+            Confirm
+          </button>
+        `;
+      }
+
+      if (o.status !== 'shipped') {
+        actions += `
+          <button class="btn secondary"
+                  onclick="shipOrder('${o.id}')">
+            Ship + Tracking
+          </button>
+        `;
+      }
+
+      let tracking = '';
+
+      if (o.tracking_number) {
+        tracking = `
+          <br>
+          <span class="muted">
+            ${esc(o.carrier || '')}<br>
+            ${esc(o.tracking_number)}
+          </span>
+        `;
+      }
+
+      return `
+        <tr>
+
+          <td>
+            <strong>${esc(o.order_number)}</strong><br>
+            <span class="muted">${esc(o.status)}</span>
+            ${tracking}
+          </td>
+
+          <td>
+            <strong>${esc(o.customer_name)}</strong><br>
+            ${esc(o.customer_email)}<br>
+            <span class="muted">
+              ${esc(o.customer_phone || '')}
+            </span>
+          </td>
+
+          <td>
+            ${items}
+          </td>
+
+          <td>
+            <strong>${money(o.total)}</strong>
+          </td>
+
+          <td>
+            ${esc(o.payment_status)}
+          </td>
+
+          <td>
+            ${esc(when)}
+          </td>
+
+          <td>
+            ${actions}
+          </td>
+
+        </tr>
+      `;
+
+    }).join('');
+
+  } catch (e) {
+    $('#orderError').textContent = e.message;
+  }
+}
+
 loadAdminOrders();
