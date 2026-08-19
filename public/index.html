@@ -26,6 +26,27 @@ function eid(v){return String(v).replace(/[^a-zA-Z0-9_-]/g,"_")}function js(v){r
 function renderFilters(){const cats=["All",...new Set(PRODUCTS.filter(x=>+x.active===1).map(x=>x.category||"Other"))];document.querySelector("#filters").innerHTML=cats.map(c=>`<button class="filter ${c===currentCategory?"active":""}" data-category="${esc(c)}">${esc(c)}</button>`).join("");document.querySelectorAll(".filter").forEach(btn=>btn.onclick=()=>{currentCategory=btn.dataset.category;renderFilters();renderProducts()})}
 function renderProducts(){const q=document.querySelector("#search").value.toLowerCase().trim();let rows=PRODUCTS.filter(x=>+x.active===1);if(currentCategory!=="All")rows=rows.filter(x=>(x.category||"Other")===currentCategory);if(q)rows=rows.filter(x=>`${x.name} ${x.category} ${x.description}`.toLowerCase().includes(q));const groups={};rows.forEach(x=>{const c=x.category||"Other";(groups[c] ||= []).push(x)});const keys=Object.keys(groups).sort();if(!keys.length){document.querySelector("#products").innerHTML='<div class="empty">No products found.</div>';return}document.querySelector("#products").innerHTML=keys.map(c=>`<section class="category"><h3>${esc(c)}</h3><div class="grid">${groups[c].sort((a,b)=>a.name.localeCompare(b.name)).map(x=>{const qty=Number(x.quantity||0);return `<article class="card"><div><h4>${esc(x.name)}</h4><div class="desc">${esc(x.description||"")}</div></div><div class="price-row"><div class="price">${money(x.price)}</div><div class="stock ${qty>0?"in":"out"}">${qty>0?qty+" available":"Unavailable"}</div></div><div class="select-row"><input class="qty" id="qty-${eid(x.id)}" type="number" min="1" max="${qty}" value="1" ${qty<1?"disabled":""}><button class="select-btn" ${qty<1?"disabled":""} onclick="addProduct('${js(x.id)}')">Select</button></div></article>`}).join("")}</div></section>`).join("")}
 function saveCart(){localStorage.setItem("jab_cart",JSON.stringify([...CART.values()].map(({product:p,qty})=>({id:p.id,name:p.name,price:Number(p.price||0),qty}))));}function addProduct(id){const p=PRODUCTS.find(x=>x.id===id);if(!p)return;const input=document.querySelector("#qty-"+eid(id));let qty=Math.max(1,Math.floor(Number(input?.value||1)));qty=Math.min(qty,Number(p.quantity||0));if(qty<1)return;const existing=CART.get(id);CART.set(id,{product:p,qty:Math.min((existing?.qty||0)+qty,Number(p.quantity||0))});saveCart();renderCart();}
+function removeProduct(id){
+  CART.delete(id);
+  saveCart();
+  renderCart();
+}
+
+function changeCartQty(id,value){
+  const item=CART.get(id);
+  if(!item)return;
+
+  const max=Number(item.product.quantity||0);
+
+  item.qty=Math.max(
+    1,
+    Math.min(max,Math.floor(Number(value||1)))
+  );
+
+  CART.set(id,item);
+  saveCart();
+  renderCart();
+}
 function renderCart(){const box=document.querySelector("#requestList");if(!CART.size){box.innerHTML='<div class="empty">No products selected yet.</div>';return}let total=0;const rows=[...CART.values()].map(({product:p,qty})=>{const line=Number(p.price||0)*qty;total+=line;return `<div class="request-item"><div><strong>${esc(p.name)}</strong><br><small>${money(p.price)} each</small></div><input class="qty" type="number" min="1" max="${Number(p.quantity||0)}" value="${qty}" onchange="changeCartQty('${js(p.id)}',this.value)"><strong class="line-total">${money(line)}</strong><button class="remove" onclick="removeProduct('${js(p.id)}')">×</button></div>`}).join("");box.innerHTML=rows+`<div class="total"><span>Estimated Total</span><span>${money(total)}</span></div>`}
 document.querySelector("#search").addEventListener("input",renderProducts);
 fetch("/api/products").then(r=>{if(!r.ok)throw new Error();return r.json()}).then(data=>{PRODUCTS=data;try{const saved=JSON.parse(localStorage.getItem("jab_cart")||"[]");saved.forEach(i=>{const p=PRODUCTS.find(x=>x.id===i.id);if(p&&Number(p.active)===1&&Number(p.quantity)>0){CART.set(p.id,{product:p,qty:Math.max(1,Math.min(Number(p.quantity),Math.floor(Number(i.qty||1))))})}})}catch{}renderFilters();renderProducts();renderCart()}).catch(()=>{document.querySelector("#products").innerHTML='<div class="empty">Catalog temporarily unavailable.</div>'});
