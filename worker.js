@@ -1,55 +1,4 @@
-// ======================================================
-// SITE CONVERSION ANALYTICS
-// ======================================================
 
-async function saveAnalyticsEvent(request, env) {
-  assertSameOrigin(request);
-
-  await env.DB.prepare(`
-    CREATE TABLE IF NOT EXISTS site_events (
-      id TEXT PRIMARY KEY,
-      event_type TEXT NOT NULL,
-      visitor_id TEXT NOT NULL DEFAULT '',
-      path TEXT NOT NULL DEFAULT '',
-      product_id TEXT NOT NULL DEFAULT '',
-      product_name TEXT NOT NULL DEFAULT '',
-      quantity INTEGER NOT NULL DEFAULT 0,
-      value REAL NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-
-  const body = await request.json();
-
-  const allowed = new Set([
-    "add_to_cart",
-    "checkout_start",
-    "order_submit"
-  ]);
-
-  const eventType = cleanText(body.event, 50);
-
-  if (!allowed.has(eventType)) {
-    return json({ ok: false, error: "Invalid analytics event." }, 400);
-  }
-
-  await env.DB.prepare(`
-    INSERT INTO site_events
-    (id, event_type, visitor_id, path, product_id, product_name, quantity, value)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    crypto.randomUUID(),
-    eventType,
-    cleanText(body.visitor_id, 100),
-    cleanText(body.path, 200),
-    cleanText(body.product_id, 120),
-    cleanText(body.product_name, 160),
-    Math.max(0, Math.floor(Number(body.qty || body.items || 0))),
-    Math.max(0, Number(body.price || body.total || 0))
-  ).run();
-
-  return json({ ok: true });
-}
 
 // ======================================================
 // CUSTOMER SECURITY / AUTH
@@ -968,12 +917,7 @@ if (url.pathname.startsWith("/api/admin/orders/")) {
       }
 
       // COAs
-      if (url.pathname === "/api/coas") {
-        if (!env.DB) return json({ ok: false, error: "D1 binding DB is not connected." }, 503);
-        if (request.method === "GET") return listCoas(request, env);
-        if (request.method === "POST") return uploadCoa(request, env);
-        return json({ ok: false, error: "Method not allowed." }, 405);
-      }
+      
       if (url.pathname.startsWith("/api/coas/") && url.pathname.endsWith("/file")) {
         const id = decodeURIComponent(url.pathname.slice("/api/coas/".length).slice(0, -"/file".length));
         return getCoaFile(id, env);
