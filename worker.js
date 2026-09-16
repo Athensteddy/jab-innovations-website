@@ -1,39 +1,56 @@
-function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      ...extraHeaders
-    }
-  });
-}
+// ======================================================
+// SITE CONVERSION ANALYTICS
+// ======================================================
 
-function unauthorized() {
-  return new Response("Admin login required.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="JAB Innovations Admin"',
-      "cache-control": "no-store"
-    }
-  });
-}
+async function saveAnalyticsEvent(request, env) {
+  assertSameOrigin(request);
 
-function isAdmin(request, env) {
-  if (!env.ADMIN_PASSWORD) return false;
-  const auth = request.headers.get("Authorization");
-  if (!auth || !auth.startsWith("Basic ")) return false;
-  try {
-    const decoded = atob(auth.slice(6));
-    const splitAt = decoded.indexOf(":");
-    if (splitAt === -1) return false;
-    const username = decoded.slice(0, splitAt);
-    const password = decoded.slice(splitAt + 1);
-    return username === "admin" && password === env.ADMIN_PASSWORD;
-  } catch {
-    return false;
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS site_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      visitor_id TEXT NOT NULL DEFAULT '',
+      path TEXT NOT NULL DEFAULT '',
+      product_id TEXT NOT NULL DEFAULT '',
+      product_name TEXT NOT NULL DEFAULT '',
+      quantity INTEGER NOT NULL DEFAULT 0,
+      value REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  const body = await request.json();
+
+  const allowed = new Set([
+    "add_to_cart",
+    "checkout_start",
+    "order_submit"
+  ]);
+
+  const eventType = cleanText(body.event, 50);
+
+  if (!allowed.has(eventType)) {
+    return json({ ok: false, error: "Invalid analytics event." }, 400);
   }
+
+  await env.DB.prepare(`
+    INSERT INTO site_events
+    (id, event_type, visitor_id, path, product_id, product_name, quantity, value)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    crypto.randomUUID(),
+    eventType,
+    cleanText(body.visitor_id, 100),
+    cleanText(body.path, 200),
+    cleanText(body.product_id, 120),
+    cleanText(body.product_name, 160),
+    Math.max(0, Math.floor(Number(body.qty || body.items || 0))),
+    Math.max(0, Number(body.price || body.total || 0))
+  ).run();
+
+  return json({ ok: true });
 }
+
 
 // ======================================================
 // CUSTOMER SECURITY / AUTH
@@ -901,7 +918,12 @@ export default {
         if (request.method === "POST") return await createOrder(request, env);
         return json({ ok: false, error: "Method not allowed." }, 405);
       }
-
+if (url.pathname === "/api/analytics") {
+  if (request.method === "POST") {
+    return await saveAnalyticsEvent(request, env);
+  }
+  return json({ ok: false, error: "Method not allowed." }, 405);
+}
       // ADMIN ORDERS
 if (url.pathname === "/api/admin/orders" && request.method === "GET") {
   return await listAdminOrders(request, env);
