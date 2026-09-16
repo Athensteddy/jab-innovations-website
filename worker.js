@@ -51,7 +51,6 @@ async function saveAnalyticsEvent(request, env) {
   return json({ ok: true });
 }
 
-
 // ======================================================
 // CUSTOMER SECURITY / AUTH
 // ======================================================
