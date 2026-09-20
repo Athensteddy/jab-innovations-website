@@ -1,3 +1,43 @@
+// STRIPE PAYMENT INTEGRATION
+async function createStripeCheckout(request, env, customer, orderId, orderNumber, items) {
+  if (!env.STRIPE_SECRET_KEY) throw new Error("Stripe is not configured.");
+
+  const origin = new URL(request.url).origin;
+  const form = new URLSearchParams();
+
+  form.set("mode", "payment");
+  form.set("success_url", origin + "/checkout.html?payment=success&order=" + encodeURIComponent(orderNumber));
+  form.set("cancel_url", origin + "/checkout.html?payment=cancelled");
+  form.set("client_reference_id", orderId);
+  form.set("customer_email", customer.email);
+  form.set("metadata[order_id]", orderId);
+  form.set("metadata[order_number]", orderNumber);
+
+  items.forEach((item, i) => {
+    form.set(`line_items[${i}][price_data][currency]`, "usd");
+    form.set(`line_items[${i}][price_data][product_data][name]`, item.name);
+    form.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(item.unitPrice * 100)));
+    form.set(`line_items[${i}][quantity]`, String(item.qty));
+  });
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": `jab-${orderId}`
+    },
+    body: form.toString()
+  });
+
+  const session = await response.json();
+
+  if (!response.ok || !session.url) {
+    throw new Error(session?.error?.message || "Unable to start Stripe payment.");
+  }
+
+  return session;
+}
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -390,6 +430,15 @@ async function createOrder(request, env) {
       .bind(crypto.randomUUID(), orderId, item.id, item.name, item.unitPrice, item.qty, item.lineTotal));
   }
   await env.DB.batch(statements);
+const stripeSession = await createStripeCheckout(
+  request,
+  env,
+  customer,
+  orderId,
+  orderNumber,
+  productRows
+);
+  
 
     // Send JAB an immediate new-order notification.
   // Email failure must never cancel or lose a saved customer order.
@@ -477,7 +526,8 @@ Advancing Research Through Quality and Innovation.`
   return json({
     ok: true,
     order: { id: orderId, order_number: orderNumber, status: "pending_payment", payment_status: "not_configured", subtotal, shipping_amount: shippingAmount, tax_amount: taxAmount, total, currency: "USD" },
-    message: "Order saved. Online card payment is not enabled yet, so inventory has not been reduced."
+    checkout_url: stripeSession.url,
+message: "Continue to secure Stripe payment."
   }, 201);
 }
 
